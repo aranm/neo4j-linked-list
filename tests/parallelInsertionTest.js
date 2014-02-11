@@ -1,6 +1,9 @@
 var async = require('async');
 var simpleneo4js = require('simpleneo4js');
 
+//bump up the retry count on failed queries
+simpleneo4js.retryCount(4);
+
 describe('Insert into a linked list in parallel', function () {
 
     beforeEach(function (done) {
@@ -29,11 +32,12 @@ describe('Insert into a linked list in parallel', function () {
         }
 
         var insertionQuery = "" +
-        'MERGE (headNode:HEAD {list:"mylist"})' +
-        'WITH headNode ' +
-        'MATCH (headNode)-[old:LINK]->after ' +
+        'MATCH (headNode:HEAD {list:"mylist"})-[old:LINK]->after ' +
+        'REMOVE headNode._lock_ ' +
+        'REMOVE after._lock_ ' +
         'DELETE old ' +
-        'CREATE headNode-[:LINK]->(newNode:LINKNODE { number : {nodeNumber} })-[:LINK]->after';
+        'CREATE headNode-[:LINK]->(newNode:LINKNODE { number : {nodeNumber} })-[:LINK]->after ' +
+        'RETURN headNode, newNode';
 
         //we fire off the async map function, this will hit our server once
         //for every node in the array
