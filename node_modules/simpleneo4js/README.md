@@ -13,7 +13,10 @@ A (very) simple node.js connection client for Neo4j
                 age: 34
             };
             
-            var queryResult = simpleNeo4js.query(cypherQuery, queryParameters);
+            var queryResult = simpleNeo4js.query({
+                cypherQuery: cypherQuery,
+                parameters: queryParameters
+            });
 
             queryResult.on('data', function (data) {
                 //a key value dictionary is returned for every row returned from neo4j

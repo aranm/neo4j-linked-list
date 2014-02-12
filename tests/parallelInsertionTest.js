@@ -1,23 +1,32 @@
 var async = require('async');
 var simpleneo4js = require('simpleneo4js');
 
-//bump up the retry count on failed queries
-simpleneo4js.retryCount(4);
-
 describe('Insert into a linked list in parallel', function () {
 
     beforeEach(function (done) {
         async.series([
             //delete every node in the database
             function (callback){
-                simpleneo4js.query('MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r', {}, callback);
+                simpleneo4js.query({
+                    cypherQuery: 'MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r',
+                    parameters: {},
+                    callback: callback
+                });
             },
             function (callback){
-                simpleneo4js.query('CREATE CONSTRAINT ON (h:HEAD) ASSERT h.list IS UNIQUE', {}, callback);
+                simpleneo4js.query({
+                    cypherQuery: 'CREATE CONSTRAINT ON (h:HEAD) ASSERT h.list IS UNIQUE',
+                    parameters: {},
+                    callback: callback
+                });
             },
             //create the root node of our linked list
             function (callback){
-                simpleneo4js.query('MERGE (headNode:HEAD {list:"mylist"}) WITH headNode MERGE headNode-[:LINK]->(headNode)', {}, callback)
+                simpleneo4js.query({
+                    cypherQuery: 'MERGE (headNode:HEAD {list:"mylist"}) WITH headNode MERGE headNode-[:LINK]->(headNode)',
+                    parameters: {},
+                    callback: callback
+                });
             }
         ], done)
     });
@@ -27,7 +36,7 @@ describe('Insert into a linked list in parallel', function () {
 
         var nodesToInsert = [];
 
-        for (var i = 0; i < 20; i++){
+        for (var i = 0; i < 200; i++){
             nodesToInsert.push(i);
         }
 
@@ -42,7 +51,13 @@ describe('Insert into a linked list in parallel', function () {
         //we fire off the async map function, this will hit our server once
         //for every node in the array
         async.map(nodesToInsert, function(item, callback){
-            simpleneo4js.query(insertionQuery, { nodeNumber: item }, callback);
+            simpleneo4js.query({
+                cypherQuery: insertionQuery,
+                parameters: { nodeNumber: item },
+                callback: callback,
+                retryOn: "All",
+                retryCount: 2
+            });
         }, function(err, results){
             // results is now an array of the return values (which is null) but we should not have any errors
             done(err);

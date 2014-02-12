@@ -6,7 +6,10 @@ var simpleNeo4js = require('../')
 
 function cleanDatabase(done) {
 
-    var queryResult = simpleNeo4js.query('MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r', {});
+    var queryResult = simpleNeo4js.query({
+        cypherQuery:'MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r',
+        parameters: {}
+    });
 
     queryResult.on('data', function (data) {
         done();

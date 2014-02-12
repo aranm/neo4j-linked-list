@@ -24,7 +24,10 @@ describe('Testing returning values from cypher queries', function(){
                 age: 34,
                 make: 'Malvern Star'
             };
-            var queryResult = simpleNeo4js.query(cypherQuery, queryParameters);
+            var queryResult = simpleNeo4js.query({
+                cypherQuery: cypherQuery,
+                parameters: queryParameters
+            });
 
             queryResult.on('data', function () {
                 done();
@@ -42,7 +45,10 @@ describe('Testing returning values from cypher queries', function(){
                 age: 18,
                 make: 'BMX'
             };
-            var queryResult = simpleNeo4js.query(cypherQuery, queryParameters);
+            var queryResult = simpleNeo4js.query({
+                cypherQuery: cypherQuery,
+                parameters: queryParameters
+            });
 
             queryResult.on('data', function () {
                 done();
@@ -57,7 +63,10 @@ describe('Testing returning values from cypher queries', function(){
 
             var cypherQuery = 'MATCH (n:User) RETURN n';
             var queryParameters = { };
-            var queryResult = simpleNeo4js.query(cypherQuery, queryParameters);
+            var queryResult = simpleNeo4js.query({
+                cypherQuery: cypherQuery,
+                parameters: queryParameters
+            });
 
             queryResult.on('data', function (newNodes) {
                 assert.equal(newNodes.length, 2, 'Two nodes were returned');
@@ -80,7 +89,10 @@ describe('Testing returning values from cypher queries', function(){
 
             var cypherQuery = 'MATCH (n:User)-[:has]->(b:Bicycle) RETURN n, b';
             var queryParameters = { };
-            var queryResult = simpleNeo4js.query(cypherQuery, queryParameters);
+            var queryResult = simpleNeo4js.query({
+                cypherQuery: cypherQuery,
+                parameters: queryParameters
+            });
 
             queryResult.on('data', function (newNodes) {
                 assert.equal(newNodes.length, 2, 'Two nodes were returned');
@@ -104,7 +116,10 @@ describe('Testing returning values from cypher queries', function(){
 
             var cypherQuery = 'MATCH (n:User) RETURN n, n.age';
             var queryParameters = { };
-            var queryResult = simpleNeo4js.query(cypherQuery, queryParameters);
+            var queryResult = simpleNeo4js.query({
+                cypherQuery: cypherQuery,
+                parameters: queryParameters
+            });
 
             queryResult.on('data', function (newNodes) {
 
@@ -127,7 +142,10 @@ describe('Testing returning values from cypher queries', function(){
 
             var cypherQuery = 'MATCH (n:User) RETURN n, COUNT(n)';
             var queryParameters = { };
-            var queryResult = simpleNeo4js.query(cypherQuery, queryParameters);
+            var queryResult = simpleNeo4js.query({
+                cypherQuery: cypherQuery,
+                parameters: queryParameters
+            });
 
             queryResult.on('data', function (newNodes) {
                 assert.equal(newNodes.length, 2, 'Two nodes were returned');
@@ -151,7 +169,10 @@ describe('Testing returning values from cypher queries', function(){
 
             var cypherQuery = 'MATCH (n:User) RETURN n, COUNT(n), n.age';
             var queryParameters = { };
-            var queryResult = simpleNeo4js.query(cypherQuery, queryParameters);
+            var queryResult = simpleNeo4js.query({
+                cypherQuery: cypherQuery,
+                parameters: queryParameters
+            });
 
             queryResult.on('data', function (newNodes) {
                 assert.equal(newNodes.length, 2, 'Two nodes were returned');
@@ -175,7 +196,10 @@ describe('Testing returning values from cypher queries', function(){
 
             var cypherQuery = 'MATCH (n:User) RETURN n.age, n, COUNT(n), COLLECT(n)';
             var queryParameters = { };
-            var queryResult = simpleNeo4js.query(cypherQuery, queryParameters);
+            var queryResult = simpleNeo4js.query({
+                cypherQuery: cypherQuery,
+                parameters: queryParameters
+            });
 
             queryResult.on('data', function (newNodes) {
                 assert.equal(newNodes.length, 2, 'Two nodes were returned');
