@@ -23,7 +23,7 @@ describe('Insert into a linked list in parallel', function () {
             //create the root node of our linked list
             function (callback){
                 simpleneo4js.query({
-                    cypherQuery: 'MERGE (headNode:HEAD {list:"mylist"}) WITH headNode MERGE headNode-[:LINK]->(headNode)',
+                    cypherQuery: 'CREATE (headNode:HEAD)-[:LINK]->(headNode)',
                     parameters: {},
                     callback: callback
                 });
@@ -41,7 +41,7 @@ describe('Insert into a linked list in parallel', function () {
         }
 
         var insertionQuery = "" +
-        'MATCH (headNode:HEAD {list:"mylist"})-[old:LINK]->after ' +
+        'MATCH (headNode:HEAD)-[old:LINK]->after ' +
         'REMOVE headNode._lock_ ' +
         'REMOVE after._lock_ ' +
         'DELETE old ' +
