@@ -3,7 +3,7 @@ var simpleneo4js = require('simpleneo4js');
 var chai = require('chai');
 var assert = chai.assert;
 
-describe('Create a more complex structure and run parallel insertion', function () {
+describe.skip('Create a more complex structure and run parallel insertion', function () {
 
     var numberOfNodes = 200;
 
