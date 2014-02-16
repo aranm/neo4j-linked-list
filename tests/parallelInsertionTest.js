@@ -39,7 +39,7 @@ function runTestOnInsertionWith(numberOfNodes, numberOfRetries){
             'MERGE (headNode:HEAD)-[old:LINK]->after ' +
             'REMOVE headNode._lock_ ' +
             'REMOVE after._lock_ ' +
-            'REMOVE old._lock_ ' +
+            //'REMOVE old._lock_ ' + //tried taking a lock on the relationship but it did not work
             'DELETE old ' +
             'CREATE headNode-[:LINK]->(newNode:LINKNODE { number : {nodeNumber} })-[:LINK]->after ' +
             'RETURN headNode, newNode';
