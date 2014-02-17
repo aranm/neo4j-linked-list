@@ -15,17 +15,16 @@ function runTestOnInsertionWith(numberOfNodes, numberOfRetries){
                     callback: callback
                 });
             },
-            //create the root node of our linked list
+            //create the constraint on the head node of the linked list
             function (callback){
                 simpleneo4js.query({
-                    cypherQuery: 'MERGE (headNode:HEAD)-[:LINK]->(headNode)',
+                    cypherQuery: 'CREATE CONSTRAINT ON (n:LINK) ASSERT n.list_head_id IS UNIQUE',
                     parameters: {},
                     callback: callback
                 });
             }
         ], done)
     });
-
 
     it('add a lot of items into the linked list in parallel', function(done){
 
@@ -36,13 +35,10 @@ function runTestOnInsertionWith(numberOfNodes, numberOfRetries){
         }
 
         var insertionQuery = "" +
-            'MERGE (headNode:HEAD)-[old:LINK]->after ' +
-            'REMOVE headNode._lock_ ' +
-            'REMOVE after._lock_ ' +
-            //'REMOVE old._lock_ ' + //tried taking a lock on the relationship but it did not work
-            'DELETE old ' +
-            'CREATE headNode-[:LINK]->(newNode:LINKNODE { number : {nodeNumber} })-[:LINK]->after ' +
-            'RETURN headNode, newNode';
+            'MERGE (current_head:LINK {list_head_id: "unique_id"}) ' +
+            'ON CREATE SET current_head.is_sentinel = true ' +
+            'REMOVE current_head.list_head_id ' +
+            'CREATE (new_head:LINK {list_head_id: "unique_id"})-[:NEXT]->current_head ';
 
         //we fire off the async map function, this will hit our server once
         //for every node in the array
@@ -60,9 +56,8 @@ function runTestOnInsertionWith(numberOfNodes, numberOfRetries){
             }
             else{
                 var getDetailsQuery = '' +
-                    'MATCH (headNode:HEAD) ' +
-                    'MATCH headNode-[following:LINK*]->lastFollowing ' +
-                    'WHERE lastFollowing <> headNode ' +
+                    'MATCH (headNode:LINK)-[following:NEXT*]->lastFollowing ' +
+                    'WHERE headNode.list_head_id = "unique_id" ' +
                     'RETURN COUNT(following) as following'
 
                 simpleneo4js.query({
@@ -91,12 +86,9 @@ describe('Insert items into a linked list in parallel', function () {
         runTestOnInsertionWith(100, 2);
     })
     describe('Insert 200 items into a liked list in parallel', function (){
-        runTestOnInsertionWith(200, 3);
+        runTestOnInsertionWith(200, 2);
     })
-    describe('Insert 300 items into a liked list in parallel', function (){
-        runTestOnInsertionWith(300, 3);
-    })
-    describe('Insert 400 items into a liked list in parallel', function (){
-        runTestOnInsertionWith(400, 4);
+    describe('Insert 250 items into a liked list in parallel', function (){
+        runTestOnInsertionWith(250, 2);
     })
 });
