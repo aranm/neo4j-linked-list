@@ -1,0 +1,2 @@
+CREATE CONSTRAINT ON (n:LINK)
+ASSERT n.list_head_id IS UNIQUE

@@ -2,7 +2,11 @@ var async = require('async');
 var simpleneo4js = require('simpleneo4js');
 var chai = require('chai');
 var assert = chai.assert;
-
+var fs  = require('fs');
+var cleanDatabase = fs.readFileSync(require('path').resolve(__dirname, 'cypher', 'cleanDatabase.cy')).toString();
+var createConstraint = fs.readFileSync(require('path').resolve(__dirname, 'cypher', 'createConstraint.cy')).toString();
+var createUser = fs.readFileSync(require('path').resolve(__dirname, 'cypher', 'circularLinkedList', 'createUser.cy')).toString();
+var insertLink = fs.readFileSync(require('path').resolve(__dirname, 'cypher', 'circularLinkedList', 'insertLink.cy')).toString();
 
 function runTestOnInsertionWith(numberOfNodes, numberOfRetries){
     beforeEach(function (done) {
@@ -10,7 +14,7 @@ function runTestOnInsertionWith(numberOfNodes, numberOfRetries){
             //delete every node in the database
             function (callback){
                 simpleneo4js.query({
-                    cypherQuery: 'MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r',
+                    cypherQuery: cleanDatabase,
                     parameters: {},
                     callback: callback
                 });
@@ -18,7 +22,7 @@ function runTestOnInsertionWith(numberOfNodes, numberOfRetries){
             //create the constraint on the head node of the linked list
             function (callback){
                 simpleneo4js.query({
-                    cypherQuery: 'CREATE CONSTRAINT ON (n:LINK) ASSERT n.list_head_id IS UNIQUE',
+                    cypherQuery: createConstraint,
                     parameters: {},
                     callback: callback
                 });
@@ -26,7 +30,7 @@ function runTestOnInsertionWith(numberOfNodes, numberOfRetries){
             //create the constraint on the head node of the linked list
             function (callback){
                 simpleneo4js.query({
-                    cypherQuery: 'CREATE (user:USER)-[oldLink:LINKS]->(user)',
+                    cypherQuery: createUser,
                     parameters: {},
                     callback: callback
                 });
@@ -42,17 +46,11 @@ function runTestOnInsertionWith(numberOfNodes, numberOfRetries){
             nodesToInsert.push(i);
         }
 
-        var insertionQuery = "" +
-            'MATCH (user:USER)-[oldLink:LINKS]->(after) ' +
-            'REMOVE after.list_head_id ' +
-            'MERGE (user)-[:LINKS]->(current_head:LINK {list_head_id: "unique_id"})-[:LINKS]->after ' +
-            'DELETE oldLink' ;
-
         //we fire off the async map function, this will hit our server once
         //for every node in the array
         async.map(nodesToInsert, function(item, callback){
             simpleneo4js.query({
-                cypherQuery: insertionQuery,
+                cypherQuery: insertLink,
                 parameters: { nodeNumber: item },
                 callback: callback,
                 retryOn: "All",
@@ -86,11 +84,10 @@ function runTestOnInsertionWith(numberOfNodes, numberOfRetries){
     })
 };
 
-describe('Insert 1 items into a circular liked list in parallel', function (){
-    runTestOnInsertionWith(1, 1);
-})
-
 describe('Insert items into a circular linked list in parallel', function () {
+    describe('Insert 1 items into a circular liked list in parallel', function (){
+        runTestOnInsertionWith(1, 1);
+    })
     describe('Insert 50 items into a circular linked list in parallel', function (){
         runTestOnInsertionWith(50, 1);
     })

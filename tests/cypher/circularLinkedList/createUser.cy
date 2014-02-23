@@ -1,0 +1,1 @@
+CREATE (user:USER)-[oldLink:LINKS]->(user)

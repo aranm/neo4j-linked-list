@@ -2,26 +2,33 @@ var async = require('async');
 var simpleneo4js = require('simpleneo4js');
 var chai = require('chai');
 var assert = chai.assert;
+var fs  = require('fs');
+var cleanDatabase = fs.readFileSync(require('path').resolve(__dirname, 'cypher', 'cleanDatabase.cy')).toString();
+var createConstraint = fs.readFileSync(require('path').resolve(__dirname, 'cypher', 'createConstraint.cy')).toString();
+var createUser = fs.readFileSync(require('path').resolve(__dirname, 'cypher', 'complicatedLinkedList', 'createUser.cy')).toString();
+var insertLink = fs.readFileSync(require('path').resolve(__dirname, 'cypher', 'complicatedLinkedList', 'insertLink.cy')).toString();
+var getDetails = fs.readFileSync(require('path').resolve(__dirname, 'cypher', 'complicatedLinkedList', 'getDetails.cy')).toString();
 
-describe.skip('Create a more complex structure and run parallel insertion', function () {
-
-    var numberOfNodes = 200;
-
+function runTestOnInsertionWith(numberOfNodes, numberOfRetries){
     beforeEach(function (done) {
         async.series([
             //delete every node in the database
             function (callback){
                 simpleneo4js.query({
-                    cypherQuery: 'MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r',
+                    cypherQuery: cleanDatabase,
+                    parameters: {},
+                    callback: callback
+                });
+            },
+            //create the constraint on the head node of the linked list
+            function (callback){
+                simpleneo4js.query({
+                    cypherQuery: createConstraint,
                     parameters: {},
                     callback: callback
                 });
             },
             function (callback){
-                var query = 'CREATE (newUser:USER {identifier: {identifier}}) ' +
-                            'CREATE newUser-[:FOLLOWING]->newUser ' +
-                            'RETURN newUser';
-
                 var nodesToInsert = [];
 
                 for (var i = 0; i < numberOfNodes; i++){
@@ -32,7 +39,7 @@ describe.skip('Create a more complex structure and run parallel insertion', func
 
                 async.map(nodesToInsert, function(item, insertCallback){
                     simpleneo4js.query({
-                        cypherQuery: query,
+                        cypherQuery: createUser,
                         parameters: item,
                         callback: insertCallback
                     });
@@ -41,37 +48,17 @@ describe.skip('Create a more complex structure and run parallel insertion', func
         ], done)
     });
 
-
     it('add a lot of items into the linked list in parallel', function(done){
 
         var nodesToInsert = [];
 
         for (var i = 0; i < numberOfNodes; i++){
             nodesToInsert.push({
-                identifier: i
+                identifier: i,
+                followerIdentifier: 0
+
             });
         }
-
-
-        /*
-        * MATCH (follower:USER)
-         WHERE follower.identifier = "0"
-         MATCH follower-[oldFollowing:FOLLOWING]->after
-         DELETE oldFollowing
-         CREATE follower-[:FOLLOWING]->(followLink:followLink)-[:FOLLOWING]->after
-         RETURN follower
-        * */
-        var insertionQuery = '' +
-        'MATCH (follower:USER), (leader:USER) ' +
-        'WHERE follower.identifier = 0 AND leader.identifier = {identifier} ' +
-        'WITH follower, leader ' +
-        'MATCH follower-[oldFollowing:FOLLOWING]->after ' +
-        'REMOVE follower._lock_ ' +
-        'REMOVE after._lock_ ' +
-        'DELETE oldFollowing ' +
-        'CREATE follower-[:FOLLOWING]->(followLink:FOLLOWLINK)-[:FOLLOWING]->after ' +
-        //'CREATE followLink-[:USERFOLLOWER]->leader ' +
-        'RETURN follower, followLink, leader '
 
         //we fire off the async map function, this will hit our server once
         //for every node in the array
@@ -80,12 +67,16 @@ describe.skip('Create a more complex structure and run parallel insertion', func
                 callback();
             }
             else {
+
+                var localCallback = function (error, results){
+                    callback(error, results);
+                }
                 simpleneo4js.query({
-                    cypherQuery: insertionQuery,
+                    cypherQuery: insertLink,
                     parameters: item,
-                    callback: callback,
+                    callback: localCallback,
                     retryOn: "All",
-                    retryCount: 1
+                    retryCount: numberOfRetries
                 })
             }
         }, function(err, results){
@@ -93,24 +84,35 @@ describe.skip('Create a more complex structure and run parallel insertion', func
                 done(err);
             }
             else{
-                var getDetailsQuery = '' +
-                    'MATCH (follower:USER) ' +
-                    'WHERE follower.identifier = 0 ' +
-                    'MATCH follower-[following:FOLLOWING*]->lastFollowing ' +
-                    'WHERE lastFollowing <> follower ' +
-                    'RETURN COUNT(following) as following'
-
                 simpleneo4js.query({
-                    cypherQuery: getDetailsQuery,
+                    cypherQuery: getDetails,
                     parameters: {},
                     callback: function (error, results){
-                        assert.equal(results.following, numberOfNodes - 1, "Should be following " + numberOfNodes - 1 + " is following " + results.following);
+                        assert.equal(results["following"], numberOfNodes - 1, "Should be following " + numberOfNodes - 1 + " is following " + results["following"]);
                         done(error)
                     },
-                    retryOn: "All",
-                    retryCount: 1
+                    retryOn: "None",
+                    retryCount: 0
                 })
             }
         });
+    })
+}
+
+describe('Insert items into a circular complicated linked list in parallel', function () {
+    describe('Insert 1 items into a circular complicated liked list in parallel', function (){
+        runTestOnInsertionWith(1, 1);
+    })
+    describe('Insert 50 items into a circular complicated linked list in parallel', function (){
+        runTestOnInsertionWith(50, 1);
+    })
+    describe('Insert 100 items into a circular complicated linked list in parallel', function (){
+        runTestOnInsertionWith(100, 2);
+    })
+    describe('Insert 200 items into a circular complicated linked list in parallel', function (){
+        runTestOnInsertionWith(200, 2);
+    })
+    describe('Insert 250 items into a circular complicated linked list in parallel', function (){
+        runTestOnInsertionWith(250, 2);
     })
 });
